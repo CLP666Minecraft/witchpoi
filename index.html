@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>女巫的毒药 - 化学卡片游戏</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0c0315 0%, #1e0a33 50%, #0c0315 100%);
+            color: #e0d6ff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(157, 78, 221, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(157, 78, 221, 0.1) 0%, transparent 20%),
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="1" fill="%237b2cbf" opacity="0.2"/></svg>');
+            z-index: -1;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            width: 100%;
+            max-width: 1000px;
+            position: relative;
+            padding-top: 10px;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 15px #9d4edd, 0 0 25px #7b2cbf;
+            letter-spacing: 2px;
+            background: linear-gradient(to right, #c77dff, #e0aaff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            position: relative;
+        }
+        
+        h1::after {
+            content: "☠️";
+            position: absolute;
+            right: -40px;
+            top: 0;
+            font-size: 2.2rem;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0); }
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            color: #c9b6e4;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .main-container {
+            display: flex;
+            width: 100%;
+            max-width: 1000px;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .players-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 20%;
+            min-width: 180px;
+            margin-top: 20px; /* 上移玩家积分界面 */
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80%;
+        }
+        
+        .player-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 10px; /* 缩小内边距 */
+            border-radius: 12px; /* 缩小圆角 */
+            background: rgba(45, 13, 70, 0.6);
+            border: 1px solid #7b2cbf;
+            box-shadow: 0 0 10px rgba(123, 44, 191, 0.4);
+            backdrop-filter: blur(5px);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .player-info::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(157, 78, 221, 0.1), transparent);
+            border-radius: 12px;
+            z-index: -1;
+        }
+        
+        .player-info.active {
+            background: rgba(157, 78, 221, 0.2);
+            box-shadow: 0 0 12px rgba(157, 78, 221, 0.5);
+            border: 1px solid #9d4edd;
+        }
+        
+        .player-label {
+            font-size: 1.2rem; /* 缩小标签字体 */
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .player-label i {
+            color: #ff6ec7;
+            font-size: 1rem;
+        }
+        
+        .player-score {
+            font-size: 2.2rem; /* 缩小分数字体 */
+            font-weight: bold;
+            color: #ff6ec7;
+            text-shadow: 0 0 8px rgba(255, 110, 199, 0.7);
+            margin: 5px 0;
+        }
+        
+        .poison-status {
+            font-size: 0.9rem; /* 缩小字体 */
+            color: #ff6ec7;
+            font-weight: bold;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 15px;
+            background: rgba(157, 78, 221, 0.2);
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            aspect-ratio: 3/4;
+            perspective: 1000px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            padding: 8px;
+        }
+        
+        .card-back {
+            background: #12071c;
+            background-image: 
+                linear-gradient(45deg, rgba(45, 13, 70, 0.5) 0%, rgba(27, 5, 45, 0.7) 100%),
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M20,20 Q50,5 80,20 T80,80 Q50,95 20,80 Z" fill="none" stroke="%239d4edd" stroke-width="0.5" opacity="0.3"/></svg>');
+            border: 2px solid #7b2cbf;
+        }
+        
+        .card-back::before {
+            content: "☠️";
+            font-size: 2.2rem; /* 增大毒药符号 */
+            opacity: 0.7;
+            text-shadow: 0 0 10px rgba(157, 78, 221, 0.8);
+        }
+        
+        .card-front {
+            background: #1e0a33;
+            border: 2px solid #9d4edd;
+            color: #e0d6ff;
+            font-size: 1.2rem; /* 增大卡片字体 */
+            font-weight: bold;
+            transform: rotateY(180deg);
+            text-shadow: 0 0 5px rgba(224, 214, 255, 0.8);
+            overflow: hidden;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            padding: 12px;
+        }
+        
+        .card.poison {
+            animation: poisonGlow 2s infinite;
+            box-shadow: 0 0 20px rgba(255, 50, 50, 0.8);
+        }
+        
+        @keyframes poisonGlow {
+            0% { box-shadow: 0 0 10px rgba(255, 0, 0, 0.5); }
+            50% { box-shadow: 0 0 25px rgba(255, 0, 0, 0.9); }
+            100% { box-shadow: 0 0 10px rgba(255, 0, 0, 0.5); }
+        }
+        
+        .card.locked {
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: linear-gradient(to bottom, #7b2cbf, #5a189a);
+            color: #f8f7ff;
+            border: none;
+            padding: 10px 25px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(123, 44, 191, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button::after {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(rgba(255,255,255,0.1), transparent);
+            transform: rotate(30deg);
+            transition: all 0.5s ease;
+        }
+        
+        button:hover {
+            background: linear-gradient(to bottom, #9d4edd, #7b2cbf);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(157, 78, 221, 0.6);
+        }
+        
+        button:hover::after {
+            transform: rotate(30deg) translate(20%, 20%);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        button:disabled {
+            background: #3c096c;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .instructions {
+            background: rgba(45, 13, 70, 0.6);
+            padding: 18px;
+            border-radius: 12px;
+            border: 1px solid #7b2cbf;
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .instructions h2 {
+            color: #e0aaff;
+            margin-bottom: 12px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 1.4rem;
+        }
+        
+        .instructions ul {
+            padding-left: 22px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            font-size: 0.95rem;
+        }
+        
+        .instructions li::before {
+            content: "•";
+            color: #ff6ec7;
+            font-size: 1.3rem;
+        }
+        
+        .death-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 2, 18, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        
+        .death-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .death-content {
+            background: linear-gradient(135deg, #2d0d46 0%, #1a0525 100%);
+            padding: 35px;
+            border-radius: 18px;
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            border: 2px solid #9d4edd;
+            box-shadow: 0 0 35px rgba(157, 78, 221, 0.7);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .death-content::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="5" fill="none" stroke="%239d4edd" stroke-width="0.3" opacity="0.2"/></svg>');
+            z-index: -1;
+        }
+        
+        .death-title {
+            font-size: 2.4rem;
+            color: #ff6ec7;
+            margin-bottom: 18px;
+            text-shadow: 0 0 12px rgba(255, 110, 199, 0.8);
+        }
+        
+        .death-message {
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .death-icons {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin: 20px 0;
+            font-size: 5rem;
+        }
+        
+        .death-icons .skull {
+            animation: pulse 1.5s infinite;
+        }
+        
+        .death-icons .poison-bottle {
+            animation: swing 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+        
+        @keyframes swing {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(15deg); }
+            50% { transform: rotate(0deg); }
+            75% { transform: rotate(-15deg); }
+            100% { transform: rotate(0deg); }
+        }
+        
+        .poison-card-display {
+            background: rgba(255, 50, 50, 0.2);
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #ff6ec7;
+            margin: 18px 0;
+            font-size: 1.6rem;
+            font-weight: bold;
+            animation: poisonGlow 2s infinite;
+        }
+        
+        .current-turn {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+            color: #ff9ecc;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px 18px;
+            border-radius: 18px;
+            background: rgba(157, 78, 221, 0.2);
+        }
+        
+        .logo {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 1.6rem;
+            color: #9d4edd;
+        }
+        
+        .witch-hat {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2rem;
+        }
+        
+        @media (max-width: 900px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .players-container {
+                width: 100%;
+                flex-direction: row;
+                justify-content: space-between;
+                margin-top: 0;
+            }
+            
+            .player-info {
+                width: 48%;
+            }
+            
+            .game-container {
+                width: 100%;
+            }
+            
+            .game-board {
+                grid-template-columns: repeat(6, 1fr);
+                grid-template-rows: repeat(4, 1fr);
+            }
+        }
+        
+        @media (max-width: 700px) {
+            .game-board {
+                grid-template-columns: repeat(4, 1fr);
+                grid-template-rows: repeat(6, 1fr);
+            }
+            
+            .players-container {
+                flex-direction: column;
+            }
+            
+            .player-info {
+                width: 100%;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            h1::after {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .game-board {
+                grid-template-columns: repeat(3, 1fr);
+                grid-template-rows: repeat(8, 1fr);
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>女巫的毒药</h1>
+        <div class="subtitle">在神秘的化学世界中避开对手的致命毒药，收集最多的卡片赢得胜利！</div>
+        <div class="logo">🧪⚗️☠️</div>
+    </div>
+    
+    <div class="main-container">
+        <div class="players-container">
+            <div class="player-info" id="player1-info">
+                <div class="witch-hat">🎩</div>
+                <div class="player-label"><i class="fas fa-user"></i>玩家一</div>
+                <div class="player-score" id="player1-score">0</div>
+                <div class="poison-status" id="player1-poison"><i class="fas fa-skull"></i>未设置</div>
+            </div>
+            
+            <div class="player-info" id="player2-info">
+                <div class="witch-hat">🎩</div>
+                <div class="player-label"><i class="fas fa-user"></i>玩家二</div>
+                <div class="player-score" id="player2-score">0</div>
+                <div class="poison-status" id="player2-poison"><i class="fas fa-skull"></i>未设置</div>
+            </div>
+        </div>
+        
+        <div class="game-container">
+            <div class="current-turn" id="current-turn"><i class="fas fa-hand-point-right"></i>玩家一，请选择你的毒药卡片</div>
+            
+            <div class="game-board" id="game-board"></div>
+            
+            <div class="controls">
+                <button id="start-btn"><i class="fas fa-play"></i> 开始游戏</button>
+                <button id="restart-btn"><i class="fas fa-redo"></i> 重新开始</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="instructions">
+        <h2><i class="fas fa-book"></i> 游戏规则</h2>
+        <ul>
+            <li><strong>第1阶段：</strong> 玩家一和玩家二依次选择一张卡片作为自己的毒药（卡片会翻转5秒后翻回）</li>
+            <li><strong>第2阶段：</strong> 点击"开始游戏"按钮，玩家一和玩家二轮流翻开卡片</li>
+            <li><strong>胜利条件：</strong> 如果玩家抽到对方设置的毒药卡，则立即死亡，对手获胜</li>
+            <li><strong>计分规则：</strong> 每安全翻开一张卡片得1分，安全翻开卡片多者获胜</li>
+            <li><strong>注意：</strong> 小心！毒药无处不在，记住对手的毒药位置</li>
+        </ul>
+    </div>
+    
+    <div class="death-modal" id="death-modal">
+        <div class="death-content">
+            <div class="death-icons">
+                <div class="skull">☠️</div>
+                <div class="poison-bottle">🧪</div>
+            </div>
+            <h2 class="death-title">毒药发作！</h2>
+            <p class="death-message" id="death-message"></p>
+            <div class="poison-card-display" id="poison-card-display"></div>
+            <p class="death-message" id="death-score"></p>
+            <button id="play-again-btn"><i class="fas fa-redo"></i> 再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 化学元素、名称和化合物列表（包含附件中的化学式）
+            const chemicals = [
+                "氢", "氦", "锂", "铍", "硼", 
+                "碳", "氮", "氧", "氟", "氖",
+                "钠", "镁", "铝", "硅", "磷",
+                "硫", "氯", "氩", "钾", "钙",
+                "锰", "铁", "铜", "锌", "银",
+                "碘", "钡", "金", "汞", "铅",
+                "碳酸根离子", "硫酸根离子", "硝酸根离子", "氢氧根离子", "亚硫酸根离子",
+                "铵根离子", "碳酸氢根离子", "磷酸根离子", "氧离子", "硫离子",
+                "氟离子", "氯离子", "氢离子", "亚铁离子", "钾离子",
+                "钠离子", "银离子", "铝离子", "铁离子", "钙离子",
+                "镁离子", "钡离子", "锌离子", "铜离子", "氦气",
+                "氮气", "氖气", "氧气", "氩气", "氯气",
+                "氢气", "二氧化硫", "氧化亚铁", "氧化镁", "水",
+                "四氧化三铁", "三氧化硫", "氧化铁", "氧化钙", "过氧化氢",
+                "一氧化碳", "二氧化锰", "氧化铜", "一氧化氮", "五氧化二磷",
+                "二氧化碳", "氧化汞", "氧化铝", "二氧化氮", "氨气",
+                "氢氧化钙", "氢氧化锌", "氢氧化铝", "硫酸钾", "硫酸钠",
+                "硫酸银", "硫酸铵", "硫酸钙", "硫酸镁", "硫酸钡",
+                "硫酸锌", "硫酸铜", "硫酸亚铁", "硫酸铁", "硫酸铝",
+                "碳酸钡", "碳酸锌", "氢氧化钠", "氢氧化钡", "氢氧化铁",
+                "氯化钾", "氯化钠", "氯化银", "氯化铵", "氯化钙",
+                "氯化镁", "氯化钡", "氯化锌", "氯化铜", "氯化亚铁",
+                "氯化铁", "氯化铝", "碳酸钙", "碳酸镁", "氢氧化钾",
+                "氢氧化镁", "氢氧化铜", "硝酸钾", "硝酸钠", "硝酸银",
+                "硝酸铵", "硝酸钙", "硝酸镁", "硝酸钡", "硝酸锌",
+                "硝酸铜", "硝酸亚铁", "硝酸铁", "硝酸铝", "碳酸钾",
+                "碳酸钠", "碳酸氢钠", "氧化钠", "硝酸钾", "碳酸钠",
+                "氧化铁", "氢氧化铁", "氯化亚铁", "氢氧化铜", "二氧化硅",
+                "三氧化硫", "硝酸", "硫酸铵", "氯化铵", "氢氧化亚铁",
+                "硫化锌", "氧化亚铁", "五氧化二氮", "氢氧化钙", "硝酸银",
+                "氯化亚铁", "硫酸钠", "碳酸氢铵", "碳酸", "碳酸钙",
+                "氯化镁", "氧化钙", "氯化铁", "碳酸钾", "二氧化硫",
+                "氧化铜", "氧化镁", "硫酸铜", "硫酸钠", "硝酸铵",
+                "四氧化三铁", "硝酸钙", "碳酸铵", "硫化钠", "氢氧化镁",
+                "硫酸铁", "硫酸", "H", "He", "Li", 
+                "Be", "B", "C", "N", "O", "F", "Ne",
+                "Na", "Mg", "Al", "Si", "P", "S", "Cl", "Ar", "K", "Ca",
+                "Mn", "Fe", "Cu", "Zn", "Ag", "Au", "I", "Ba", "Hg", "Pb",
+                "CO₃²⁻", "SO₄²⁻", "NO₃⁻", "OH⁻", "SO₃²⁻", "NH₄⁺", "HCO₃⁻", "PO₄³⁻", "O²⁻", "S²⁻",
+                "F⁻", "Cl⁻", "H⁺", "Fe²⁺", "K⁺", "Na⁺", "Ag⁺", "Al³⁺", "Fe³⁺", "Ca²⁺",
+                "Mg²⁺", "Ba²⁺", "Zn²⁺", "Cu²⁺", "He", "N₂", "Ne", "O₂", "Ar", "Cl₂",
+                "H₂", "SO₂", "FeO", "MgO", "H₂O", "Fe₃O₄", "SO₃", "Fe₂O₃", "CaO", "H₂O₂",
+                "CO", "MnO₂", "CuO", "NO", "P₂O₅", "CO₂", "HgO", "Al₂O₃", "NO₂", "NH₃",
+                "Ca(OH)₂", "Zn(OH)₂", "Al(OH)₃", "K₂SO₄", "Na₂SO₄", "Ag₂SO₄", "(NH₄)₂SO₄", "CaSO₄", "MgSO₄", "BaSO₄",
+                "ZnSO₄", "CuSO₄", "FeSO₄", "Fe₂(SO₄)₃", "Al₂(SO₄)₃", "BaCO₃", "ZnCO₃", "NaOH", "Ba(OH)₂", "Fe(OH)₃",
+                "KCl", "NaCl", "AgCl", "NH₄Cl", "CaCl₂", "MgCl₂", "BaCl₂", "ZnCl₂", "CuCl₂", "FeCl₂",
+                "FeCl₃", "AlCl₃", "CaCO₃", "MgCO₃", "KOH", "Mg(OH)₂", "Cu(OH)₂", "KNO₃", "NaNO₃", "AgNO₃",
+                "NH₄NO₃", "Ca(NO₃)₂", "Mg(NO₃)₂", "Ba(NO₃)₂", "Zn(NO₃)₂", "Cu(NO₃)₂", "Fe(NO₃)₂", "Fe(NO₃)₃", "Al(NO₃)₃", "K₂CO₃",
+                "Na₂CO₃", "NaHCO₃", "Na₂O", "KNO₃", "Na₂CO₃", "Fe₂O₃", "Fe(OH)₃", "FeCl₂", "Cu(OH)₂", "SiO₂",
+                "SO₃", "HNO₃", "(NH₄)₂SO₄", "NH₄Cl", "Fe(OH)₂", "ZnS", "FeO", "N₂O₅", "Ca(OH)₂", "AgNO₃",
+                "FeCl₂", "Na₂SO₄", "NH₄HCO₃", "H₂CO₃", "CaCO₃", "MgCl₂", "CaO", "FeCl₃", "K₂CO₃", "SO₂",
+                "CuO", "MgO", "CuSO₄", "Na₂SO₄", "NH₄NO₃", "Fe₃O₄", "Ca(NO₃)₂", "(NH₄)₂CO₃", "Na₂S", "Mg(OH)₂",
+                "Fe₂(SO₄)₃", "H₂SO₄"
+            ];
+            
+            // 游戏状态变量
+            const state = {
+                cards: [],
+                player1Poison: null,
+                player2Poison: null,
+                player1Score: 0,
+                player2Score: 0,
+                currentPlayer: 1,
+                gamePhase: 'selectPoison1',
+                lockedCards: new Set()
+            };
+            
+            // DOM 元素
+            const gameBoard = document.getElementById('game-board');
+            const player1ScoreEl = document.getElementById('player1-score');
+            const player2ScoreEl = document.getElementById('player2-score');
+            const player1Info = document.getElementById('player1-info');
+            const player2Info = document.getElementById('player2-info');
+            const player1PoisonEl = document.getElementById('player1-poison');
+            const player2PoisonEl = document.getElementById('player2-poison');
+            const startBtn = document.getElementById('start-btn');
+            const restartBtn = document.getElementById('restart-btn');
+            const currentTurnEl = document.getElementById('current-turn');
+            const deathModal = document.getElementById('death-modal');
+            const deathMessageEl = document.getElementById('death-message');
+            const poisonCardDisplay = document.getElementById('poison-card-display');
+            const deathScoreEl = document.getElementById('death-score');
+            const playAgainBtn = document.getElementById('play-again-btn');
+            
+            // 初始化游戏
+            function initGame() {
+                // 重置状态
+                state.player1Poison = null;
+                state.player2Poison = null;
+                state.player1Score = 0;
+                state.player2Score = 0;
+                state.currentPlayer = 1;
+                state.gamePhase = 'selectPoison1';
+                state.lockedCards.clear();
+                
+                // 更新UI
+                player1ScoreEl.textContent = '0';
+                player2ScoreEl.textContent = '0';
+                player1PoisonEl.innerHTML = '<i class="fas fa-skull"></i>未设置';
+                player2PoisonEl.innerHTML = '<i class="fas fa-skull"></i>未设置';
+                player1Info.classList.add('active');
+                player2Info.classList.remove('active');
+                startBtn.disabled = true;
+                deathModal.classList.remove('active');
+                currentTurnEl.innerHTML = '<i class="fas fa-hand-point-right"></i>玩家一，请选择你的毒药卡片';
+                
+                // 创建卡片
+                createCards();
+            }
+            
+            // 创建卡片
+            function createCards() {
+                gameBoard.innerHTML = '';
+                state.cards = [];
+                
+                // 随机选择24个化学式
+                const shuffled = [...chemicals].sort(() => 0.5 - Math.random());
+                const selectedChemicals = shuffled.slice(0, 24);
+                
+                for (let i = 0; i < 24; i++) {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.dataset.index = i;
+                    
+                    card.innerHTML = `
+                        <div class="card-inner">
+                            <div class="card-back"></div>
+                            <div class="card-front">${selectedChemicals[i]}</div>
+                        </div>
+                    `;
+                    
+                    card.addEventListener('click', () => handleCardClick(i));
+                    gameBoard.appendChild(card);
+                    
+                    // 存储卡片状态
+                    state.cards.push({
+                        element: card,
+                        content: selectedChemicals[i],
+                        isFlipped: false,
+                        isLocked: false
+                    });
+                }
+            }
+            
+            // 处理卡片点击
+            function handleCardClick(index) {
+                const card = state.cards[index];
+                if (card.isLocked) return;
+                
+                switch (state.gamePhase) {
+                    case 'selectPoison1':
+                        selectPoison(index, 1);
+                        break;
+                    case 'selectPoison2':
+                        selectPoison(index, 2);
+                        break;
+                    case 'playing':
+                        playTurn(index);
+                        break;
+                }
+            }
+            
+            // 选择毒药
+            function selectPoison(index, player) {
+                const card = state.cards[index];
+                
+                // 翻转卡片
+                card.element.classList.add('flipped');
+                
+                if (player === 1) {
+                    state.player1Poison = index;
+                    player1PoisonEl.innerHTML = '<i class="fas fa-skull"></i>已设置';
+                    state.gamePhase = 'selectPoison2';
+                    currentTurnEl.innerHTML = '<i class="fas fa-hand-point-right"></i>玩家二，请选择你的毒药卡片';
+                    player1Info.classList.remove('active');
+                    player2Info.classList.add('active');
+                } else {
+                    state.player2Poison = index;
+                    player2PoisonEl.innerHTML = '<i class="fas fa-skull"></i>已设置';
+                    state.gamePhase = 'waitingToStart';
+                    currentTurnEl.innerHTML = '<i class="fas fa-check-circle"></i>准备开始游戏...';
+                    player2Info.classList.remove('active');
+                    startBtn.disabled = false;
+                }
+                
+                // 5秒后翻回卡片
+                setTimeout(() => {
+                    card.element.classList.remove('flipped');
+                }, 5000);
+            }
+            
+            // 玩家回合
+            function playTurn(index) {
+                const card = state.cards[index];
+                
+                // 翻转并锁定卡片
+                card.element.classList.add('flipped', 'locked');
+                card.isLocked = true;
+                state.lockedCards.add(index);
+                
+                // 检查是否抽到毒药
+                if ((state.currentPlayer === 1 && index === state.player2Poison) ||
+                    (state.currentPlayer === 2 && index === state.player1Poison)) {
+                    // 玩家死亡
+                    showDeathScreen(state.currentPlayer === 1 ? 2 : 1, index);
+                    return;
+                }
+                
+                // 安全卡片，增加分数
+                if (state.currentPlayer === 1) {
+                    state.player1Score++;
+                    player1ScoreEl.textContent = state.player1Score;
+                    state.currentPlayer = 2;
+                    currentTurnEl.innerHTML = '<i class="fas fa-hand-point-right"></i>玩家二，请翻开一张卡片';
+                    player1Info.classList.remove('active');
+                    player2Info.classList.add('active');
+                } else {
+                    state.player2Score++;
+                    player2ScoreEl.textContent = state.player2Score;
+                    state.currentPlayer = 1;
+                    currentTurnEl.innerHTML = '<i class="fas fa-hand-point-right"></i>玩家一，请翻开一张卡片';
+                    player1Info.classList.add('active');
+                    player2Info.classList.remove('active');
+                }
+                
+                // 检查游戏是否结束（所有卡片翻开）
+                if (state.lockedCards.size === 24) {
+                    endGameWithScore();
+                }
+            }
+            
+            // 显示死亡界面
+            function showDeathScreen(winningPlayer, poisonIndex) {
+                state.gamePhase = 'gameOver';
+                
+                // 显示毒药卡片
+                const poisonCard = state.cards[poisonIndex];
+                poisonCard.element.classList.add('flipped', 'poison');
+                
+                // 设置死亡信息
+                deathMessageEl.textContent = `玩家${winningPlayer === 1 ? '二' : '一'}抽中了玩家${winningPlayer}的毒药！`;
+                poisonCardDisplay.textContent = poisonCard.content;
+                deathScoreEl.textContent = `最终得分: 玩家一 ${state.player1Score} - 玩家二 ${state.player2Score}`;
+                
+                // 显示死亡弹窗
+                setTimeout(() => {
+                    deathModal.classList.add('active');
+                }, 1000);
+            }
+            
+            // 通过分数结束游戏（所有卡片翻开）
+            function endGameWithScore() {
+                state.gamePhase = 'gameOver';
+                
+                let winner;
+                if (state.player1Score > state.player2Score) {
+                    winner = 1;
+                } else if (state.player2Score > state.player1Score) {
+                    winner = 2;
+                } else {
+                    winner = 0;
+                }
+                
+                // 设置死亡信息
+                deathMessageEl.textContent = winner ? `玩家 ${winner} 胜利！` : "平局！";
+                poisonCardDisplay.textContent = "所有卡片已翻开";
+                deathScoreEl.textContent = `最终得分: 玩家一 ${state.player1Score} - 玩家二 ${state.player2Score}`;
+                
+                // 显示死亡弹窗
+                setTimeout(() => {
+                    deathModal.classList.add('active');
+                }, 500);
+            }
+            
+            // 事件监听器
+            startBtn.addEventListener('click', () => {
+                state.gamePhase = 'playing';
+                startBtn.disabled = true;
+                state.currentPlayer = 1;
+                currentTurnEl.innerHTML = '<i class="fas fa-hand-point-right"></i>玩家一，请翻开一张卡片';
+                player1Info.classList.add('active');
+                player2Info.classList.remove('active');
+            });
+            
+            restartBtn.addEventListener('click', initGame);
+            
+            playAgainBtn.addEventListener('click', () => {
+                deathModal.classList.remove('active');
+                initGame();
+            });
+            
+            // 初始化游戏
+            initGame();
+        });
+    </script>
+</body>
+</html>
